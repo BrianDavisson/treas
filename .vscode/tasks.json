@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Treasury Analyzer",
+			"type": "shell",
+			"command": "/Users/bdavisson/Documents/vscode-play/treas/.venv/bin/python",
+			"args": [
+				"-m",
+				"treas_analyzer"
+			],
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "build"
+		}
+	]
+}

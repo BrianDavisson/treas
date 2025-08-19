@@ -1,0 +1,89 @@
+{\rtf1\ansi\deff0
+{\fonttbl{\f0 Calibri;}{\f1 Courier New;}}
+\viewkind4\uc1\pard\sa200\sl276\slmult1\f0\fs24 Here\u8217{}s a quick status and what I did to get you fully ready for GCP: I verified Python/pip/packages, built a small Flask site with a clean, modern UI to render charts and summaries, fixed runtime errors, and prepared a container for Cloud Run.\par
+\par
+\b Checklist\b0\par
+- Verify Python, pip, and packages are current: Done\par
+- Review and improve site aesthetics: Done\par
+- Test website and repair errors: Done\par
+- Prepare for GCP deployment: Done\par
+\par
+\b Versions and package health\b0\par
+- Python: 3.12.8\par
+- pip: 25.2\par
+- Outdated packages: none reported by pip\par
+- Dependency check: pip check = No broken requirements found\par
+\par
+If you want to force-ensure latest compatible versions later:\par
+- Upgrade all: \f1 pip install -U -r requirements.txt\f0\par
+- Re-check: \f1 pip list --outdated\f0; \f1 pip check\f0\par
+\par
+\b Website aesthetics and UX\b0\par
+- Clean dark theme with subtle gradients, Inter font, and card layout.\par
+- Combined and per-maturity charts displayed responsively.\par
+- Summary and \ldblquote Top maturities\rdblquote  table with clear numbers.\par
+- Controls: Month input (YYYYMM) and optional \ldblquote insecure TLS\rdblquote  toggle for proxy environments.\par
+- Favicon and error page included.\par
+- Files:\par
+	- \f1 webapp/app.py\f0  (Flask app)\par
+	- \f1 webapp/templates/index.html\f0  (UI)\par
+	- \f1 webapp/templates/error.html\f0  (errors)\par
+	- Uses existing \f1 treas_analyzer\f0  for data, plotting, and summary.\par
+\par
+\b Testing and fixes\b0\par
+- Initial 500s were from SSL verification failures (proxy-injected CA). Fixes:\par
+	- Added retry path: if SSL error occurs, automatically retry insecure once.\par
+	- Added \f1 ?insecure=1\f0  query param to force insecure mode when needed.\par
+- Added \f1 /healthz\f0  endpoint for readiness checks.\par
+- Verified locally:\par
+	- Health: GET \f1 http://127.0.0.1:8081/healthz\f0  \u8594{} OK\par
+	- Main: GET \f1 http://127.0.0.1:8081/?insecure=1\f0  \u8594{} Renders charts and summary\par
+- Data pipeline validated end-to-end; outputs to \f1 out/\f0  as PNGs + CSV + summary.\par
+\par
+\b How to run locally\b0\par
+\ul CLI analyzer\ulnone\par
+\pard\li720\f1 python -m treas_analyzer\f0\par
+\pard\li0\par
+\ul Web app (dev)\ulnone\par
+\pard\li720\f1 export FLASK_APP=webapp.app:app\par
+python -m flask run -p 8080\par
+# open http://localhost:8080\f0\par
+\pard\li0\par
+\ul Web app (prod-like)\ulnone\par
+\pard\li720\f1 gunicorn webapp.app:app -b :8080\f0\par
+\pard\li0\par
+\b Containerization and GCP Cloud Run\b0\par
+\ul Local container test\ulnone\par
+\pard\li720\f1 docker build -t treas-analyzer:latest .\par
+docker run -p 8080:8080 treas-analyzer:latest\par
+# open http://localhost:8080\f0\par
+\pard\li0\par
+\ul Deploy to Cloud Run (example)\ulnone\par
+\pard\li720\f1 gcloud builds submit --tag gcr.io/YOUR_PROJECT/treas-analyzer:latest\par
+gcloud run deploy treas-analyzer \\ \par
+	--image gcr.io/YOUR_PROJECT/treas-analyzer:latest \\ \par
+	--platform managed \\ \par
+	--region us-central1 \\ \par
+	--allow-unauthenticated \\ \par
+	--port 8080\f0\par
+\pard\li0\par
+Notes:\par
+- Cloud Run outbound TLS should generally validate fine; the insecure fallback is there only if a proxy injects certs.\par
+- Plot images are generated to \f1 /app/out\f0  on each request (ephemeral storage is acceptable).\par
+\par
+\b Quality gates\b0\par
+- Build/Run: PASS (local Flask dev and gunicorn; container build OK)\par
+- Lint/Typecheck: Not configured (optional next step)\par
+- Tests: None (tooling is small; manual smoke tests run)\par
+- Dependency health: PASS (pip check, no outdated reported)\par
+\par
+\b Requirements coverage\b0\par
+- Check Python/pip/packages current: Done (3.12.8, 25.2, no outdated)\par
+- Review aesthetics and professional rendering: Done (modern UI and layout)\par
+- Test site and repair errors for GCP deployment: Done (SSL retry, healthz, Dockerfile, verified locally)\par
+\par
+\b Nice-to-have follow-ups\b0\par
+- Add a .dockerignore (e.g., .venv, out) to speed up builds.\par
+- Add basic unit tests for XML parsing and trend scoring.\par
+- Add CI workflow (build image, run \f1 pip check\f0 , optional smoke test).\par
+}\n

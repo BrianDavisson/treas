@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Investment Estimator · Treasury Yield Analyzer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='80'>💹</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:#0b1220; color:#e6edf7; }
+    a { color:#6aa9ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    header { padding:24px 20px 8px; max-width:960px; margin:0 auto; }
+  .nav-bar { display:flex; gap:18px; margin-top:14px; }
+  .nav-bar a { position:relative; font-size:14px; font-weight:500; color:#93a4c6; text-decoration:none; padding:6px 10px; border-radius:8px; transition:background .2s,color .2s; }
+  .nav-bar a:hover { background: rgba(255,255,255,0.06); color:#e6edf7; }
+  .nav-bar a.active { background: linear-gradient(180deg, rgba(106,169,255,0.25), rgba(106,169,255,0.12)); color:#e6edf7; box-shadow:0 0 0 1px rgba(106,169,255,0.4) inset; }
+  .nav-bar a.active::after { content:""; position:absolute; left:10px; right:10px; bottom:4px; height:2px; border-radius:1px; background:#6aa9ff; opacity:0.9; }
+    main { max-width:960px; margin:0 auto; padding:12px 20px 60px; }
+    h1 { font-size:26px; margin:0 0 6px; }
+    .muted { color:#93a4c6; }
+    .card { background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px 22px; margin-bottom:24px; box-shadow:0 8px 28px rgba(0,0,0,0.35); }
+    input[type=number], .amt-input {
+      width: 220px; padding:10px 12px; border-radius:8px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#0f1624; /* closer to card/page tone */
+      color:#ffffff; font-size:15px; font-weight:500;
+    }
+    .amt-input:focus { outline: 2px solid #6aa9ff; outline-offset: 0; }
+    .amt-input::placeholder { color: #a8b3cf; opacity:0.55; }
+    button { padding:10px 18px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:linear-gradient(180deg,#1e3966,#162c4d); color:#fff; font-weight:600; cursor:pointer; }
+    button:hover { filter:brightness(1.05); }
+    table { width:100%; border-collapse:collapse; margin-top:18px; }
+    th, td { padding:8px 10px; text-align:right; border-bottom:1px solid rgba(255,255,255,0.08); font-variant-numeric: tabular-nums; }
+    th { text-align:right; font-weight:600; font-size:13px; color:#8ea2c7; }
+    td.label, th.label { text-align:left; }
+    .error { color:#ff6575; margin-top:8px; font-weight:600; }
+    .footer { margin-top:40px; font-size:12px; color:#8ea2c7; line-height:1.5; }
+    .badge { display:inline-block; background:#183453; color:#6aa9ff; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; margin-left:8px; }
+    .nav { margin-top:6px; }
+  /* Highlight for best maturity (duration-adjusted value) */
+  tr.best-row { background:linear-gradient(90deg, rgba(106,169,255,0.22), rgba(106,169,255,0.06)); box-shadow:0 0 0 1px rgba(106,169,255,0.35) inset; }
+  tr.best-row td { font-weight:600; }
+  .legend-accent { color:#6aa9ff; font-weight:600; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Treasury Yield Analyzer</h1>
+  <div class="muted" style="margin-top:4px; font-size:14px;">Investment Estimator <span class="badge">{{ year_month }}</span></div>
+  <div class="muted" style="margin-top:6px;">Estimate simple (non-compounded) interest earned over each maturity using the latest annualized yields.</div>
+  <nav class="nav-bar" aria-label="Primary navigation">
+    <a href="/">Dashboard</a>
+    <a href="/invest" class="active">Investment Estimator</a>
+  </nav>
+</header>
+<main>
+  <div class="card">
+    <form method="get" action="/invest">
+  <label for="amount">Investment amount (500 - 10,000,000):</label><br>
+    <input id="amount" class="amt-input" name="amount" inputmode="numeric" autocomplete="off" pattern="[0-9,]*" placeholder="10,000" value="{% if amount %}{{ '{:,}'.format(amount|int) }}{% endif %}" required />
+      <button type="submit">Calculate</button>
+    </form>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    {% if rows %}
+      <table>
+        <thead>
+          <tr>
+            <th class="label">Maturity</th>
+            <th>Years</th>
+            <th>Yield %</th>
+            <th>Interest</th>
+            <th>Total Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr class="{% if best_maturity and r.Maturity == best_maturity %}best-row{% endif %}">
+              <td class="label">{{ r.Maturity }}</td>
+              <td>{{ '%.6f'|format(r.Years) }}</td>
+              <td>{{ '%.2f'|format(r.YieldPct) }}</td>
+              <td>{{ '$%0.2f'|format(r.Interest) }}</td>
+              <td>{{ '$%0.2f'|format(r.Total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+  <div class="footer">
+    Method: Interest = Principal * (AnnualizedYield% / 100) * Years.<br>
+    Simplifications: No compounding, assumes holding to maturity, ignores price/roll, taxes, and day-count conventions.<br>
+    Highlight: <span class="legend-accent">blue-tinted row</span> denotes the top duration-adjusted value (blend of yield level and length of term).<br>
+    Latest data date: {{ latest_date if latest_date else 'n/a' }}<br>
+  </div>
+</main>
+<script>
+// Comma formatting for amount input
+(function(){
+  const inp = document.getElementById('amount');
+  if(!inp) return;
+  const nf = new Intl.NumberFormat('en-US');
+  function format(val){
+    if(!val) return '';
+    const digits = val.replace(/[^0-9]/g,'');
+    if(!digits) return '';
+    return nf.format(parseInt(digits,10));
+  }
+  function raw(val){ return (val||'').replace(/[^0-9]/g,''); }
+  let last = inp.value;
+  inp.addEventListener('input', (e)=>{
+    const start = inp.selectionStart;
+    const before = inp.value;
+    const digitsBeforeCursor = raw(before.slice(0, start)).length;
+    const formatted = format(before);
+    inp.value = formatted;
+    // Restore cursor near previous logical position
+    let cursor = formatted.length;
+    if(digitsBeforeCursor < raw(formatted).length){
+      // Walk through formatted string counting digits until match
+      let count = 0; cursor = 0;
+      while(cursor < formatted.length && count < digitsBeforeCursor){
+        if(/\d/.test(formatted[cursor])) count++;
+        cursor++;
+      }
+    }
+    inp.setSelectionRange(cursor, cursor);
+    last = inp.value;
+  });
+  // On form submit strip commas so server receives plain number
+  inp.form && inp.form.addEventListener('submit', ()=>{
+    inp.value = raw(inp.value);
+  });
+})();
+</script>
+</body>
+</html>

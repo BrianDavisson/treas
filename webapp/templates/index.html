@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Treasury Yield Analyzer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='80'>💹</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+      :root {
+        --bg: #0b1220;
+        --card: #111a2b;
+        --muted: #a8b3cf;
+        --text: #e6edf7;
+        --accent: #6aa9ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 80% -10%, rgba(74,144,226,0.15), transparent 60%),
+                    radial-gradient(1000px 600px at 10% -20%, rgba(255,255,255,0.06), transparent 50%),
+                    var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 28px 24px 8px; max-width: 1080px; margin: 0 auto;
+      }
+  .nav-bar { display:flex; gap:18px; margin-top:14px; }
+  .nav-bar a { position:relative; font-size:14px; font-weight:500; color: var(--muted); text-decoration:none; padding:6px 10px; border-radius:8px; transition:background .2s,color .2s; }
+  .nav-bar a:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .nav-bar a.active { background: linear-gradient(180deg, rgba(106,169,255,0.25), rgba(106,169,255,0.12)); color: var(--text); box-shadow:0 0 0 1px rgba(106,169,255,0.4) inset; }
+  .nav-bar a.active::after { content:""; position:absolute; left:10px; right:10px; bottom:4px; height:2px; border-radius:1px; background: var(--accent); opacity:0.9; }
+      .title { font-size: 28px; font-weight: 700; letter-spacing: 0.2px; }
+      .subtitle { color: var(--muted); margin-top: 6px; }
+      main { max-width: 1080px; margin: 0 auto; padding: 12px 24px 40px; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+      @media (min-width: 900px) {
+        .grid { grid-template-columns: 2fr 1fr; align-items: start; }
+      }
+      .card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        backdrop-filter: blur(6px);
+      }
+      .card h2 { font-size: 16px; margin: 0 0 12px; color: var(--muted); font-weight: 600; }
+      .summary { white-space: pre-wrap; line-height: 1.5; margin-top: 14px; }
+  .plots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); cursor: zoom-in; }
+      .top5 table { width: 100%; border-collapse: collapse; }
+      .top5 th, .top5 td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: rgba(106,169,255,0.15); color: var(--accent); font-weight: 600; font-size: 12px; }
+      .footer { color: var(--muted); font-size: 12px; margin-top: 12px; }
+      .controls { display: flex; gap: 8px; align-items: center; color: var(--muted); margin-top: 10px; }
+      input, button { border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: #0f1624; color: var(--text); padding: 8px 10px; }
+      button { background: linear-gradient(180deg, #1e365d, #162949); cursor: pointer; }
+      button:hover { filter: brightness(1.04); }
+      .sidebar .stat { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+      .sidebar .stat .label { color: var(--muted); font-size: 12px; }
+      .sidebar .stat .value { font-weight: 700; }
+      .spacer { height: 12px; }
+
+  /* Fullscreen/overlay fallback */
+  .fs-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 9999; }
+  .fs-backdrop.open { display: flex; }
+  .fs-backdrop img { max-width: 95vw; max-height: 95vh; border-radius: 6px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); cursor: zoom-out; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="title">Treasury Yield Analyzer <span class="badge">{{ year_month }}</span></div>
+      <div class="subtitle">
+        Latest data: {{ latest_date.strftime('%Y-%m-%d') }} · Interactive plots update when you change the month.
+      </div>
+      <nav class="nav-bar" aria-label="Primary navigation">
+        <a href="/" class="active">Dashboard</a>
+        <a href="/invest">Investment Estimator</a>
+      </nav>
+    </header>
+    <main>
+      <div class="grid">
+        <section class="card plots">
+          <h2>Yield curves</h2>
+          {% for file in png_files %}
+            <img class="zoomable" src="/plots/{{ file }}" alt="{{ file }}" style="margin-bottom:12px;" />
+          {% endfor %}
+          <div class="summary">
+            {{ summary_text }}
+          </div>
+        </section>
+        <aside class="card sidebar">
+          <h2>Top maturities</h2>
+          <div class="top5" style="margin-top: 6px;">
+            <table>
+              <thead>
+                <tr><th>Maturity</th><th>Yield %</th><th>Trend bps/mo</th><th>Rank</th></tr>
+              </thead>
+              <tbody>
+                {% for row in top5 %}
+                  <tr>
+                    <td>{{ row.Maturity }}</td>
+                    <td>{{ '%.2f'|format(row.CurrentYieldPct) }}</td>
+                    <td>{% if row.TrendBpsPerMonth is number %}{{ '%.1f'|format(row.TrendBpsPerMonth) }}{% else %}n/a{% endif %}</td>
+                    <td>{{ '%.1f'|format(row.CompositeRank) }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="spacer"></div>
+          <h2>Best overall</h2>
+          {% if best_overall %}
+          <div class="stat">
+            <div class="label">Maturity</div><div class="value">{{ best_overall.Maturity }}</div>
+            <div class="label">Yield</div><div class="value">{{ '%.2f'|format(best_overall.CurrentYieldPct) }}%</div>
+            <div class="label">Composite rank</div><div class="value">{{ '%.1f'|format(best_overall.CompositeRank) }}</div>
+          </div>
+          {% else %}
+            <div class="footer">Unavailable</div>
+          {% endif %}
+
+          <div class="footer">Data Source: U.S. Treasury</div>
+        </aside>
+      </div>
+    </main>
+    <!-- Fullscreen overlay fallback -->
+    <div class="fs-backdrop" id="fsBackdrop" aria-hidden="true" role="dialog" aria-label="Full screen image">
+      <img id="fsImage" alt="Full size plot" />
+    </div>
+
+    <script>
+      (function(){
+        const imgs = document.querySelectorAll('.plots img.zoomable');
+        const backdrop = document.getElementById('fsBackdrop');
+        const fsImg = document.getElementById('fsImage');
+
+        let lastTouchTime = 0;
+        let touchTimeout;
+
+        function openFullscreenFor(el){
+          // Prefer Fullscreen API if available
+          if (el.requestFullscreen) {
+            el.requestFullscreen().catch(()=>{});
+          } else if (el.webkitRequestFullscreen) { // Safari
+            el.webkitRequestFullscreen();
+          }
+        }
+
+        function exitFullscreen(){
+          if (document.fullscreenElement) {
+            document.exitFullscreen().catch(()=>{});
+          } else if (document.webkitFullscreenElement) {
+            document.webkitExitFullscreen && document.webkitExitFullscreen();
+          }
+        }
+
+        function openOverlay(src){
+          fsImg.src = src;
+          backdrop.classList.add('open');
+          backdrop.setAttribute('aria-hidden','false');
+          // Try fullscreen on backdrop; if it fails, overlay still shows
+          openFullscreenFor(backdrop);
+        }
+
+        function closeOverlay(){
+          backdrop.classList.remove('open');
+          backdrop.setAttribute('aria-hidden','true');
+          fsImg.src = '';
+          exitFullscreen();
+        }
+
+        backdrop && backdrop.addEventListener('click', closeOverlay);
+        document.addEventListener('keydown', (e)=>{
+          if(e.key === 'Escape') closeOverlay();
+        });
+
+        imgs.forEach(img => {
+          // Double click for desktop
+          img.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            openOverlay(img.src);
+          });
+
+          // Double tap for touch devices
+          img.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchTime < 300) {
+              // double tap detected
+              e.preventDefault();
+              clearTimeout(touchTimeout);
+              openOverlay(img.src);
+              lastTouchTime = 0;
+            } else {
+              lastTouchTime = now;
+              // single tap timeout (do nothing special)
+              touchTimeout = setTimeout(()=>{ lastTouchTime = 0; }, 320);
+            }
+          }, {passive:false});
+        });
+      })();
+    </script>
+  </body>
+</html>
