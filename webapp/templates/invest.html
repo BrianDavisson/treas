@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Investment Estimator · Treasury Yield Analyzer</title>
+  <title>Treasury Calculator · Treasury Yield Analyzer</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='80'>💹</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -47,11 +47,12 @@
 <body>
 <header>
   <h1>Treasury Yield Analyzer</h1>
-  <div class="muted" style="margin-top:4px; font-size:14px;">Investment Estimator <span class="badge">{{ year_month }}</span></div>
+  <div class="muted" style="margin-top:4px; font-size:14px;">Treasury Calculator <span class="badge">{{ year_month }}</span></div>
   <div class="muted" style="margin-top:6px;">Estimate simple (non-compounded) interest earned over each maturity using the latest annualized yields.</div>
   <nav class="nav-bar" aria-label="Primary navigation">
     <a href="/">Dashboard</a>
-    <a href="/invest" class="active">Investment Estimator</a>
+    <a href="/invest" class="active">Treasury Calculator</a>
+    <a href="/ladder">Ladder Calculator</a>
   </nav>
 </header>
 <main>
@@ -94,6 +95,25 @@
     Latest data date: {{ latest_date if latest_date else 'n/a' }}<br>
   </div>
 </main>
+
+<!-- Footer -->
+<footer style="background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-top: 1px solid rgba(255,255,255,0.08); margin-top: 40px; padding: 32px 20px; text-align: center;">
+  <div style="max-width: 960px; margin: 0 auto;">
+    <div style="margin-bottom: 16px;">
+      <strong style="color: #e6edf7; font-size: 16px;">Purchase U.S. Treasury Securities</strong>
+    </div>
+    <div style="color: #93a4c6; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+      Anyone can buy Treasury securities directly from the U.S. Government through 
+      <a href="https://www.treasurydirect.gov" target="_blank" rel="noopener" style="color: #6aa9ff; text-decoration: none; font-weight: 600;">TreasuryDirect</a>, 
+      the official website of the U.S. Treasury. TreasuryDirect allows you to purchase, manage, and redeem 
+      Treasury bills, notes, bonds, and savings bonds directly from the source with no fees or commissions.
+    </div>
+    <div style="padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); color: #93a4c6; font-size: 12px;">
+      This Treasury Yield Analyzer is provided as a free community service by Brian Davisson. 
+      All data sourced from official U.S. Treasury publications. Not investment advice.
+    </div>
+  </div>
+</footer>
 <script>
 // Comma formatting for amount input
 (function(){

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Treasury Ladder Calculator · Treasury Yield Analyzer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='80'>💹</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:#0b1220; color:#e6edf7; }
+    a { color:#6aa9ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    header { padding:24px 20px 8px; max-width:960px; margin:0 auto; }
+  .nav-bar { display:flex; gap:18px; margin-top:14px; }
+  .nav-bar a { position:relative; font-size:14px; font-weight:500; color:#93a4c6; text-decoration:none; padding:6px 10px; border-radius:8px; transition:background .2s,color .2s; }
+  .nav-bar a:hover { background: rgba(255,255,255,0.06); color:#e6edf7; }
+  .nav-bar a.active { background: linear-gradient(180deg, rgba(106,169,255,0.25), rgba(106,169,255,0.12)); color:#e6edf7; box-shadow:0 0 0 1px rgba(106,169,255,0.4) inset; }
+  .nav-bar a.active::after { content:""; position:absolute; left:10px; right:10px; bottom:4px; height:2px; border-radius:1px; background:#6aa9ff; opacity:0.9; }
+    main { max-width:960px; margin:0 auto; padding:12px 20px 60px; }
+    h1 { font-size:26px; margin:0 0 6px; }
+    .muted { color:#93a4c6; }
+    .card { background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px 22px; margin-bottom:24px; box-shadow:0 8px 28px rgba(0,0,0,0.35); }
+    input[type=number], .amt-input, select {
+      padding:10px 12px; border-radius:8px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:#0f1624;
+      color:#ffffff; font-size:15px; font-weight:500;
+    }
+    .amt-input { width: 220px; }
+    select { width: 120px; }
+    .amt-input:focus, select:focus { outline: 2px solid #6aa9ff; outline-offset: 0; }
+    .amt-input::placeholder { color: #a8b3cf; opacity:0.55; }
+    button { padding:10px 18px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:linear-gradient(180deg,#1e3966,#162c4d); color:#fff; font-weight:600; cursor:pointer; }
+    button:hover { filter:brightness(1.05); }
+    table { width:100%; border-collapse:collapse; margin-top:18px; }
+    th, td { padding:8px 10px; text-align:right; border-bottom:1px solid rgba(255,255,255,0.08); font-variant-numeric: tabular-nums; }
+    th { text-align:right; font-weight:600; font-size:13px; color:#8ea2c7; }
+    td.label, th.label { text-align:left; }
+    .error { color:#ff6575; margin-top:8px; font-weight:600; }
+    .footer { margin-top:40px; font-size:12px; color:#8ea2c7; line-height:1.5; }
+    .badge { display:inline-block; background:#183453; color:#6aa9ff; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; margin-left:8px; }
+    .form-row { display: flex; gap: 12px; align-items: end; margin-bottom: 16px; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { margin-bottom: 6px; font-size: 14px; color: #a8b3cf; }
+    .summary-card { background: rgba(106,169,255,0.08); border: 1px solid rgba(106,169,255,0.2); margin-top: 20px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 12px; }
+    .summary-item { text-align: center; }
+    .summary-item .label { font-size: 12px; color: #93a4c6; margin-bottom: 4px; }
+    .summary-item .value { font-size: 18px; font-weight: 700; color: #6aa9ff; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Treasury Yield Analyzer</h1>
+  <div class="muted" style="margin-top:4px; font-size:14px;">Treasury Ladder Calculator <span class="badge">{{ year_month }}</span></div>
+  <div class="muted" style="margin-top:6px;">Build a Treasury ladder by spreading investments across multiple maturities for steady income and reduced interest rate risk.</div>
+  <nav class="nav-bar" aria-label="Primary navigation">
+    <a href="/">Dashboard</a>
+    <a href="/invest">Treasury Calculator</a>
+    <a href="/ladder" class="active">Ladder Calculator</a>
+  </nav>
+</header>
+<main>
+  <div class="card">
+    <form method="get" action="/ladder">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="total_amount">Total Investment ($500 - $10,000,000):</label>
+          <input id="total_amount" class="amt-input" name="total_amount" inputmode="numeric" autocomplete="off" pattern="[0-9,]*" placeholder="50,000" value="{% if total_amount %}{{ '{:,}'.format(total_amount|int) }}{% endif %}" required />
+        </div>
+        <div class="form-group">
+          <label for="rungs">Number of Rungs:</label>
+          <select id="rungs" name="rungs">
+            <option value="3" {% if rungs == 3 %}selected{% endif %}>3</option>
+            <option value="4" {% if rungs == 4 %}selected{% endif %}>4</option>
+            <option value="5" {% if rungs == 5 %}selected{% endif %}>5</option>
+            <option value="6" {% if rungs == 6 %}selected{% endif %}>6</option>
+            <option value="7" {% if rungs == 7 %}selected{% endif %}>7</option>
+            <option value="8" {% if rungs == 8 %}selected{% endif %}>8</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="strategy">Ladder Strategy:</label>
+          <select id="strategy" name="strategy" onchange="toggleCustomAllocations()">
+            <option value="equal" {% if strategy == 'equal' %}selected{% endif %}>Equal Amounts</option>
+            <option value="yield_weighted" {% if strategy == 'yield_weighted' %}selected{% endif %}>Yield Weighted</option>
+            <option value="short_weighted" {% if strategy == 'short_weighted' %}selected{% endif %}>Short Term Focus</option>
+            <option value="long_weighted" {% if strategy == 'long_weighted' %}selected{% endif %}>Long Term Focus</option>
+            <option value="custom" {% if strategy == 'custom' %}selected{% endif %}>Custom Allocations</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <button type="submit">Build Ladder</button>
+        </div>
+      </div>
+      
+      <!-- Custom Allocations Section -->
+      <div id="custom-allocations" style="display: {% if strategy == 'custom' %}block{% else %}none{% endif %}; margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px;">
+        <h4 style="margin: 0 0 12px; color: #6aa9ff; font-size: 14px;">Custom Allocation Percentages (must total 100%)</h4>
+        <div id="allocation-inputs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+          {% for i in range(rungs) %}
+          <div class="form-group">
+            <label for="alloc_{{ i }}" style="font-size: 12px;">Rung {{ i + 1 }}:</label>
+            <input type="number" id="alloc_{{ i }}" name="alloc_{{ i }}" min="0" max="100" step="0.1" 
+                   value="{% if custom_allocations and custom_allocations[i] %}{{ custom_allocations[i] }}{% else %}{{ (100 / rungs)|round(1) }}{% endif %}" 
+                   style="width: 80px; font-size: 13px;" placeholder="20.0" />
+          </div>
+          {% endfor %}
+        </div>
+        <div style="margin-top: 8px; font-size: 12px; color: #93a4c6;">
+          Total: <span id="total-percentage">100.0</span>% 
+          <span id="percentage-warning" style="color: #ff6575; display: none;">⚠ Must equal 100%</span>
+        </div>
+      </div>
+    </form>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    
+    {% if ladder_results %}
+      <table>
+        <thead>
+          <tr>
+            <th class="label">Maturity</th>
+            <th>Years</th>
+            <th>Yield %</th>
+            <th>Investment</th>
+            <th>Annual Interest</th>
+            <th>Maturity Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rung in ladder_results.rungs %}
+            <tr>
+              <td class="label">{{ rung.maturity }}</td>
+              <td>{{ '%.3f'|format(rung.years) }}</td>
+              <td>{{ '%.2f'|format(rung.yield_pct) }}</td>
+              <td>${{ '{:,.0f}'.format(rung.amount) }}</td>
+              <td>${{ '{:,.0f}'.format(rung.annual_interest) }}</td>
+              <td>${{ '{:,.0f}'.format(rung.maturity_value) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <div class="card summary-card">
+        <h3 style="margin:0 0 8px; color:#6aa9ff;">Ladder Summary</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="label">Total Investment</div>
+            <div class="value">${{ '{:,.0f}'.format(ladder_results.total_invested) }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="label">Weighted Avg Yield</div>
+            <div class="value">{{ '%.2f'|format(ladder_results.weighted_avg_yield) }}%</div>
+          </div>
+          <div class="summary-item">
+            <div class="label">Total Annual Interest</div>
+            <div class="value">${{ '{:,.0f}'.format(ladder_results.total_annual_interest) }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="label">Avg Years to Maturity</div>
+            <div class="value">{{ '%.1f'|format(ladder_results.avg_years) }}</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  
+  <div class="footer">
+    Strategy Descriptions:<br>
+    <strong>Equal Amounts:</strong> Divides investment equally across all rungs.<br>
+    <strong>Yield Weighted:</strong> Allocates more to higher-yielding maturities.<br>
+    <strong>Short Term Focus:</strong> Concentrates more investment in shorter maturities.<br>
+    <strong>Long Term Focus:</strong> Concentrates more investment in longer maturities.<br>
+    <strong>Custom Allocations:</strong> Set your own percentage allocation for each rung.<br><br>
+    Method: Simple interest calculation. Assumes holding to maturity, no reinvestment of interest.<br>
+    Latest data date: {{ latest_date if latest_date else 'n/a' }}<br>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer style="background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border-top: 1px solid rgba(255,255,255,0.08); margin-top: 40px; padding: 32px 20px; text-align: center;">
+  <div style="max-width: 960px; margin: 0 auto;">
+    <div style="margin-bottom: 16px;">
+      <strong style="color: #e6edf7; font-size: 16px;">Purchase U.S. Treasury Securities</strong>
+    </div>
+    <div style="color: #93a4c6; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+      Anyone can buy Treasury securities directly from the U.S. Government through 
+      <a href="https://www.treasurydirect.gov" target="_blank" rel="noopener" style="color: #6aa9ff; text-decoration: none; font-weight: 600;">TreasuryDirect</a>, 
+      the official website of the U.S. Treasury. TreasuryDirect allows you to purchase, manage, and redeem 
+      Treasury bills, notes, bonds, and savings bonds directly from the source with no fees or commissions.
+    </div>
+    <div style="padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); color: #93a4c6; font-size: 12px;">
+      This Treasury Yield Analyzer is provided as a free community service by Brian Davisson. 
+      All data sourced from official U.S. Treasury publications. Not investment advice.
+    </div>
+  </div>
+</footer>
+
+<script>
+// Comma formatting for amount input
+(function(){
+  const inp = document.getElementById('total_amount');
+  if(!inp) return;
+  const nf = new Intl.NumberFormat('en-US');
+  function format(val){
+    if(!val) return '';
+    const digits = val.replace(/[^0-9]/g,'');
+    if(!digits) return '';
+    return nf.format(parseInt(digits,10));
+  }
+  function raw(val){ return (val||'').replace(/[^0-9]/g,''); }
+  let last = inp.value;
+  inp.addEventListener('input', (e)=>{
+    const start = inp.selectionStart;
+    const before = inp.value;
+    const digitsBeforeCursor = raw(before.slice(0, start)).length;
+    const formatted = format(before);
+    inp.value = formatted;
+    // Restore cursor near previous logical position
+    let cursor = formatted.length;
+    if(digitsBeforeCursor < raw(formatted).length){
+      // Walk through formatted string counting digits until match
+      let count = 0; cursor = 0;
+      while(cursor < formatted.length && count < digitsBeforeCursor){
+        if(/\d/.test(formatted[cursor])) count++;
+        cursor++;
+      }
+    }
+    inp.setSelectionRange(cursor, cursor);
+    last = inp.value;
+  });
+  // On form submit strip commas so server receives plain number
+  inp.form && inp.form.addEventListener('submit', ()=>{
+    inp.value = raw(inp.value);
+  });
+})();
+
+// Custom allocations functionality
+function toggleCustomAllocations() {
+  const strategy = document.getElementById('strategy').value;
+  const customDiv = document.getElementById('custom-allocations');
+  const rungs = parseInt(document.getElementById('rungs').value);
+  
+  if (strategy === 'custom') {
+    customDiv.style.display = 'block';
+    updateAllocationInputs(rungs);
+  } else {
+    customDiv.style.display = 'none';
+  }
+}
+
+function updateAllocationInputs(numRungs) {
+  const container = document.getElementById('allocation-inputs');
+  const defaultAlloc = (100 / numRungs).toFixed(1);
+  
+  // Clear and rebuild allocation inputs
+  container.innerHTML = '';
+  for (let i = 0; i < numRungs; i++) {
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML = `
+      <label for="alloc_${i}" style="font-size: 12px;">Rung ${i + 1}:</label>
+      <input type="number" id="alloc_${i}" name="alloc_${i}" min="0" max="100" step="0.1" 
+             value="${defaultAlloc}" style="width: 80px; font-size: 13px;" placeholder="20.0" 
+             oninput="updateTotal()" />
+    `;
+    container.appendChild(div);
+  }
+  updateTotal();
+}
+
+function updateTotal() {
+  const inputs = document.querySelectorAll('#allocation-inputs input[type="number"]');
+  let total = 0;
+  inputs.forEach(input => {
+    const val = parseFloat(input.value) || 0;
+    total += val;
+  });
+  
+  const totalSpan = document.getElementById('total-percentage');
+  const warningSpan = document.getElementById('percentage-warning');
+  
+  totalSpan.textContent = total.toFixed(1);
+  
+  if (Math.abs(total - 100) > 0.1) {
+    warningSpan.style.display = 'inline';
+    totalSpan.style.color = '#ff6575';
+  } else {
+    warningSpan.style.display = 'none';
+    totalSpan.style.color = '#6aa9ff';
+  }
+}
+
+// Update allocations when rungs change
+document.getElementById('rungs').addEventListener('change', function() {
+  const strategy = document.getElementById('strategy').value;
+  if (strategy === 'custom') {
+    updateAllocationInputs(parseInt(this.value));
+  }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  toggleCustomAllocations();
+});
+</script>
+</body>
+</html>

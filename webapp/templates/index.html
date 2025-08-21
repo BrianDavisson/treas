@@ -75,7 +75,8 @@
       </div>
       <nav class="nav-bar" aria-label="Primary navigation">
         <a href="/" class="active">Dashboard</a>
-        <a href="/invest">Investment Estimator</a>
+        <a href="/invest">Treasury Calculator</a>
+        <a href="/ladder">Ladder Calculator</a>
       </nav>
     </header>
     <main>
@@ -124,6 +125,25 @@
         </aside>
       </div>
     </main>
+    
+    <!-- Footer -->
+    <footer style="background: var(--card); border-top: 1px solid rgba(255,255,255,0.08); margin-top: 40px; padding: 32px 24px; text-align: center;">
+      <div style="max-width: 1080px; margin: 0 auto;">
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--text); font-size: 16px;">Purchase U.S. Treasury Securities</strong>
+        </div>
+        <div style="color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+          Anyone can buy Treasury securities directly from the U.S. Government through 
+          <a href="https://www.treasurydirect.gov" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none; font-weight: 600;">TreasuryDirect</a>, 
+          the official website of the U.S. Treasury. TreasuryDirect allows you to purchase, manage, and redeem 
+          Treasury bills, notes, bonds, and savings bonds directly from the source with no fees or commissions.
+        </div>
+        <div style="padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); color: var(--muted); font-size: 12px;">
+          This Treasury Yield Analyzer is provided as a free community service by Brian Davisson. 
+          All data sourced from official U.S. Treasury publications. Not investment advice.
+        </div>
+      </div>
+    </footer>
     <!-- Fullscreen overlay fallback -->
     <div class="fs-backdrop" id="fsBackdrop" aria-hidden="true" role="dialog" aria-label="Full screen image">
       <img id="fsImage" alt="Full size plot" />

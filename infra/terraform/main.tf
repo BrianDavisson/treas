@@ -48,7 +48,7 @@ resource "google_project_iam_member" "ar_reader" {
   member  = "serviceAccount:${google_service_account.runner.email}"
 }
 
-# Cloud Run service
+# Cloud Run service with optimized settings
 resource "google_cloud_run_v2_service" "app" {
   name     = var.service_name
   location = var.region
@@ -56,19 +56,66 @@ resource "google_cloud_run_v2_service" "app" {
 
   template {
     service_account = google_service_account.runner.email
+    
+    # Optimize for faster cold starts
+    max_instance_request_concurrency = 10
+    timeout                          = "120s"
+    
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repo_name}/${var.image_name}:${var.image_tag}"
-      ports { container_port = 8080 }
+      ports { 
+        container_port = 8080 
+      }
       resources {
         limits = {
           cpu    = "1"
-          memory = "512Mi"
+          memory = "1Gi"  # Increased for better performance
         }
+        cpu_idle = true   # Allow CPU throttling when idle
       }
+      
+      # Environment variables for Cloud Run optimization
       env {
         name  = "PORT"
         value = "8080"
       }
+      env {
+        name  = "DISABLE_STARTUP_REGENERATE"
+        value = "0"  # Enable optimized startup
+      }
+      env {
+        name  = "STARTUP_MONTH"
+        value = "auto"
+      }
+      
+      # Health check configuration
+      liveness_probe {
+        http_get {
+          path = "/health"
+          port = 8080
+        }
+        initial_delay_seconds = 30
+        period_seconds       = 60
+        timeout_seconds      = 10
+        failure_threshold    = 3
+      }
+      
+      startup_probe {
+        http_get {
+          path = "/ready"
+          port = 8080
+        }
+        initial_delay_seconds = 5
+        period_seconds       = 10
+        timeout_seconds      = 5
+        failure_threshold    = 30
+      }
+    }
+    
+    # Scaling configuration for better performance
+    scaling {
+      min_instance_count = 0  # Allow scaling to zero
+      max_instance_count = 10 # Reasonable upper limit
     }
   }
 
