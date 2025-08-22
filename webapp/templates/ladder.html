@@ -82,10 +82,10 @@
         <div class="form-group">
           <label for="strategy">Ladder Strategy:</label>
           <select id="strategy" name="strategy" onchange="toggleCustomAllocations()">
-            <option value="equal" {% if strategy == 'equal' %}selected{% endif %}>Equal Amounts</option>
+            <option value="equal" {% if strategy == 'equal' %}selected{% endif %}>Equal Weighted</option>
             <option value="yield_weighted" {% if strategy == 'yield_weighted' %}selected{% endif %}>Yield Weighted</option>
-            <option value="short_weighted" {% if strategy == 'short_weighted' %}selected{% endif %}>Short Term Focus</option>
-            <option value="long_weighted" {% if strategy == 'long_weighted' %}selected{% endif %}>Long Term Focus</option>
+            <option value="short_weighted" {% if strategy == 'short_weighted' %}selected{% endif %}>Short Term</option>
+            <option value="long_weighted" {% if strategy == 'long_weighted' %}selected{% endif %}>Long Term</option>
             <option value="custom" {% if strategy == 'custom' %}selected{% endif %}>Custom Allocations</option>
           </select>
         </div>
@@ -113,6 +113,24 @@
           <span id="percentage-warning" style="color: #ff6575; display: none;">⚠ Must equal 100%</span>
         </div>
       </div>
+      
+      <div class="form-group">
+          <label for="durations">Choose Duration:</label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+            {% for opt in ['ALL','1M','2M','5Y','7Y','10Y','20Y'] %}
+            <label style="font-size:13px; color:#a8b3cf;">
+              <input type="checkbox" name="durations" value="{{ opt }}"
+                {% if durations_selected %}
+                  {% if opt in durations_selected %}checked{% endif %}
+                {% else %}
+                  {% if opt != 'ALL' and selected_labels and opt in selected_labels %}checked{% endif %}
+                {% endif %}
+              /> {{ opt }}
+            </label>
+            {% endfor %}
+          </div>
+          <div style="font-size:11px; color:#93a4c6; margin-top:6px;">Select ALL or specific maturities; if none are selected, defaults to Top Maturities.</div>
+        </div>
     </form>
     {% if error %}<div class="error">{{ error }}</div>{% endif %}
     
@@ -175,6 +193,7 @@
     <strong>Custom Allocations:</strong> Set your own percentage allocation for each rung.<br><br>
     Method: Simple interest calculation. Assumes holding to maturity, no reinvestment of interest.<br>
     Latest data date: {{ latest_date if latest_date else 'n/a' }}<br>
+  Note: M means months, Y means years.
   </div>
 </main>
 
@@ -227,28 +246,19 @@
         cursor++;
       }
     }
-    inp.setSelectionRange(cursor, cursor);
-    last = inp.value;
   });
-  // On form submit strip commas so server receives plain number
-  inp.form && inp.form.addEventListener('submit', ()=>{
-    inp.value = raw(inp.value);
-  });
-})();
 
-// Custom allocations functionality
-function toggleCustomAllocations() {
-  const strategy = document.getElementById('strategy').value;
-  const customDiv = document.getElementById('custom-allocations');
-  const rungs = parseInt(document.getElementById('rungs').value);
-  
-  if (strategy === 'custom') {
-    customDiv.style.display = 'block';
-    updateAllocationInputs(rungs);
-  } else {
-    customDiv.style.display = 'none';
+  function toggleCustomAllocations(){
+    const customDiv = document.getElementById('custom-allocations');
+    const strategy = document.getElementById('strategy').value;
+    const rungs = parseInt(document.getElementById('rungs').value);
+    if (strategy === 'custom') {
+      customDiv.style.display = 'block';
+      updateAllocationInputs(rungs);
+    } else {
+      customDiv.style.display = 'none';
+    }
   }
-}
 
 function updateAllocationInputs(numRungs) {
   const container = document.getElementById('allocation-inputs');
@@ -303,6 +313,27 @@ document.getElementById('rungs').addEventListener('change', function() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   toggleCustomAllocations();
+  // Auto-recalc on durations change
+  const form = document.querySelector('form[action="/ladder"]');
+  const rungsSel = document.getElementById('rungs');
+  const boxes = Array.from(document.querySelectorAll('input[name="durations"]'));
+  function submitAfterAdjust(){ form && form.submit(); }
+  boxes.forEach(b=>{
+    b.addEventListener('change', function(){
+      if(this.value === 'ALL' && this.checked){
+        // Uncheck others when ALL selected
+        boxes.forEach(x=>{ if(x.value !== 'ALL') x.checked = false; });
+      } else {
+        // If any specific selected, ensure ALL is unchecked
+        const allBox = boxes.find(x=>x.value==='ALL');
+        if(allBox) allBox.checked = false;
+      }
+      // Adjust rungs to number of selected specific durations (exclude ALL)
+      const selectedSpecific = boxes.filter(x=>x.value!=='ALL' && x.checked).length;
+      if(selectedSpecific > 0){ rungsSel.value = String(selectedSpecific); }
+      submitAfterAdjust();
+    });
+  });
 });
 </script>
 </body>

@@ -148,7 +148,11 @@ def index():
 
     # Cloud Run optimization: prefer existing data over regeneration during request
     if is_cloud_run() and files_exist and not regen_needed:
-        pass  # Use existing files
+        # Load cached data efficiently in Cloud Run
+        try:
+            df = pd.read_csv(csv_path, parse_dates=["Date"]).assign(Date=lambda s: s["Date"].dt.date)
+        except Exception as e:
+            return render_template("error.html", error=f"Failed to load cached CSV: {e}"), 500
     elif regen_needed:
         try:
             xml_text = fetch_xml(url, verify_ssl=not insecure)
@@ -364,7 +368,12 @@ def ladder():
                 custom_allocations.append(alloc)
             except ValueError:
                 custom_allocations.append(100.0 / rungs)
-    
+
+    # Parse selected durations (multi-select checkboxes). Support 'ALL'.
+    durations = request.values.getlist('durations') if request.values.getlist('durations') else []
+    if 'ALL' in durations:
+        durations = []  # empty means include all available maturities (subject to min-year filter)
+
     error = None
     try:
         total_amount = float(total_amount_raw)
@@ -411,7 +420,13 @@ def ladder():
         available_maturities = []
         latest_row = df.iloc[-1]
         for xml_field, (label, years) in MATURITY_FIELDS.items():
-            if label not in df.columns or years is None or years < 0.5:  # Skip very short terms
+            if label not in df.columns or years is None:
+                continue
+            # Skip very short terms unless explicitly selected by the user
+            if years < 0.5 and not (durations and label in durations):
+                continue
+            # If user selected specific durations, only include those
+            if durations and label not in durations:
                 continue
             series = df[label].dropna()
             if series.empty:
@@ -423,19 +438,19 @@ def ladder():
                 "yield_pct": yld
             })
         
-        # Sort by years and select appropriate number for ladder
-        available_maturities.sort(key=lambda x: x["years"])
-        
-        # Select rungs - spread across available maturities
-        if len(available_maturities) >= rungs:
-            step = len(available_maturities) // rungs
-            selected_indices = [i * step for i in range(rungs)]
-            # Ensure we get the longest maturity
-            if selected_indices[-1] != len(available_maturities) - 1:
-                selected_indices[-1] = len(available_maturities) - 1
-            selected_maturities = [available_maturities[i] for i in selected_indices]
+        # If user didn’t select durations, default to Top Maturities: choose top-yielding set of size=rungs
+        available_maturities.sort(key=lambda x: x["yield_pct"], reverse=True)
+        if not durations:
+            selected_maturities = available_maturities[: max(0, rungs)]
         else:
+            # Durations were filtered above; use all available after filtering
             selected_maturities = available_maturities
+
+        # Adjust rungs to match selection count
+        rungs = min(rungs, len(selected_maturities)) if rungs > 0 else len(selected_maturities)
+        selected_maturities = selected_maturities[:rungs]
+        selected_labels = [m["maturity"] for m in selected_maturities]
+        selected_maturities.sort(key=lambda x: x["years"])  # display/order
         
         # Apply allocation strategy
         if strategy == "equal":
@@ -503,6 +518,8 @@ def ladder():
         total_amount=total_amount,
         rungs=rungs,
         strategy=strategy,
+    durations_selected=durations,
+        selected_labels=selected_labels if 'selected_labels' in locals() else [],
         custom_allocations=custom_allocations if strategy == "custom" else None,
         error=error,
         ladder_results=ladder_results,
