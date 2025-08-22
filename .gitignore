@@ -1,11 +1,48 @@
+# Python
 .venv/
+.venvtres/
 __pycache__/
 *.pyc
-out/
-.DS_Store
-.venv/
-__pycache__/
-*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Application output
 out/
 out_*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/settings.json
+.idea/
+
+# Terraform
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Security - Never commit these!
+*.env
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*-key.json
+service-account*.json
+credentials*.json
+.gcloud/
+.config/
+
+# Docker
+.dockerignore
+
+# Logs
+*.log
+logs/
 

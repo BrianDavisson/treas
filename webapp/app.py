@@ -354,8 +354,8 @@ def ladder():
         year_month = build_month_arg(None)
 
     # Parse parameters
-    total_amount_raw = request.values.get("total_amount", "50000").replace(",", "").strip()
-    rungs = int(request.values.get("rungs", "5"))
+    total_amount_raw = request.values.get("total_amount", "25000").replace(",", "").strip()
+    rungs = int(request.values.get("rungs", "3"))
     strategy = request.values.get("strategy", "equal")
     
     # Parse custom allocations if strategy is custom
@@ -422,9 +422,6 @@ def ladder():
         for xml_field, (label, years) in MATURITY_FIELDS.items():
             if label not in df.columns or years is None:
                 continue
-            # Skip very short terms unless explicitly selected by the user
-            if years < 0.5 and not (durations and label in durations):
-                continue
             # If user selected specific durations, only include those
             if durations and label not in durations:
                 continue
@@ -457,8 +454,17 @@ def ladder():
             # Equal allocation
             weights = [1.0] * len(selected_maturities)
         elif strategy == "yield_weighted":
-            # Weight by yield
-            weights = [m["yield_pct"] for m in selected_maturities]
+            # Weight by relative yield (original approach):
+            # use differences from the lowest yield to avoid overly peaky allocations
+            ylds = [m["yield_pct"] for m in selected_maturities]
+            if ylds:
+                min_y = min(ylds)
+                weights = [max(y - min_y, 0.0) for y in ylds]
+                # If all yields equal (sum == 0), fall back to equal weighting
+                if sum(weights) == 0:
+                    weights = [1.0] * len(selected_maturities)
+            else:
+                weights = [1.0] * len(selected_maturities)
         elif strategy == "short_weighted":
             # More weight to shorter terms
             weights = [1.0 / (m["years"] ** 0.5) for m in selected_maturities]
